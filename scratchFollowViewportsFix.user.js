@@ -5,8 +5,8 @@
 // @include     https://scratch.mit.edu/users/*
 // @grant       none
 // @namespace   scratchFollowViewportsFix
-// @downloadURL https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.js
-// @updateURL   https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.js
+// @downloadURL https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js
+// @updateURL   https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js
 // ==/UserScript==
 (async () => {
   let following = await fetch(
