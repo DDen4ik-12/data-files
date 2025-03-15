@@ -150,8 +150,8 @@
       const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset;
       const penDrawableId = vm.renderer._drawList[penIndexInDrawList];
       const penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
-      if (vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer).drawPoint) {
-        const newPenSkin = vm.renderer._allSkins[penSkinId].constructor(penSkinId, vm.renderer);
+      if ((new vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer)).drawPoint) {
+        const newPenSkin = new vm.renderer._allSkins[penSkinId].constructor(penSkinId, vm.renderer);
         vm.renderer._allSkins[penSkinId] = newPenSkin;
         vm.renderer._allDrawables[penDrawableId]._skin = vm.renderer._allSkins[penSkinId];
         vm.renderer._allDrawables[penDrawableId].updateScale([101, 100]);
