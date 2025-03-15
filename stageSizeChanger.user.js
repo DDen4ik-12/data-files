@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        stageSizeChanger
-// @version     1.0-alpha.2
+// @version     1.0-alpha.3
 // @author      Den4ik-12
 // @include     https://scratch.mit.edu/projects/*
 // @include     https://lab.scratch.mit.edu/*
@@ -136,17 +136,26 @@
 
       vm.runtime.stageWidth = width;
       vm.runtime.stageHeight = height;
-      if (vm.runtime.renderer) {
-        vm.runtime.renderer.setStageSize(
-          -width / 2,
-          width / 2,
-          -height / 2,
-          height / 2,
-        );
-        vm.renderer.resize(width, height);
-      }
+      vm.runtime.renderer.setStageSize(
+        -width / 2,
+        width / 2,
+        -height / 2,
+        height / 2,
+      );
+      vm.renderer.resize(width, height);
       vm.runtime.emit("STAGE_SIZE_CHANGED", width, height);
       window.dispatchEvent(new Event("resize"));
+
+      const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset;
+      const penDrawableId = vm.renderer._drawList[penIndexInDrawList];
+      const penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
+      if (vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer).drawPoint) {
+        const newPenSkin = vm.renderer._allSkins[penSkinId].constructor(penSkinId, vm.renderer);
+        vm.renderer._allSkins[penSkinId] = newPenSkin;
+        vm.renderer._allDrawables[penDrawableId]._skin = vm.renderer._allSkins[penSkinId];
+        vm.renderer._allDrawables[penDrawableId].updateScale([101, 100]);
+        vm.renderer._allDrawables[penDrawableId].updateScale([100, 100]);
+      }
     }
   };
   vm.setStageSize = vm.runtime.setStageSize;
