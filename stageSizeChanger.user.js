@@ -98,6 +98,7 @@
   let stageSizeMode = location.pathname.split("/").includes("editor")
     ? stateNode.props.stageSize : "large";
   let vm = stateNode.props.vm;
+  top.vm = vm;
 
   const monitorsDivsUpdate = () => {
     const monitorsDivs = document.querySelectorAll(
