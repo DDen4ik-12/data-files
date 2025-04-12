@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        stageSizeChanger
-// @version     1.0-alpha.3
+// @version     1.0-alpha.4
 // @author      Den4ik-12
 // @include     https://scratch.mit.edu/projects/*
 // @include     https://lab.scratch.mit.edu/*
@@ -40,13 +40,11 @@
   const resizePlayerStyle = document.createElement("style");
   document.head.appendChild(resizePlayerStyle);
   const updatePlayerSize = (width, height, stageSizeMode) => {
-    console.log(
-      Object.values(document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]')).find((x) => x.child)
-      .child.child.child.stateNode.props.stageSize
-    );
     stageSizeMode =
       stageSizeMode == "large" ? 1 : stageSizeMode == "small" ? 0.5 : 1;
-    const stageWrapperBoundingRect = document.querySelector('[class*="stage-wrapper_stage-wrapper"]').getBoundingClientRect()
+    const stageWrapperBoundingRect = document
+      .querySelector('[class*="stage-wrapper_stage-wrapper"]')
+      .getBoundingClientRect();
     resizePlayerStyle.textContent = `.preview .guiPlayer {
       width: ${width + 2}px !important;
     }
@@ -91,27 +89,27 @@
     }`;
   };
 
-  let reactInst = Object.values(
-    await asyncQuerySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
-  ).find((x) => x.child);
-  let stateNode = reactInst.child.child.child.stateNode;
-  let stageSizeMode = location.pathname.split("/").includes("editor")
-    ? stateNode.props.stageSize : "large";
-  let vm = stateNode.props.vm;
-  top.vm = vm;
-
   const monitorsDivsUpdate = () => {
     const monitorsDivs = document.querySelectorAll(
       'div[class^="monitor_monitor-container_"]',
     );
-    const monitorsInfo = vm.runtime._monitorState
-      .valueSeq()
+    const monitorsInfo = monitorsStateClone
       .toArray()
       .filter((x) => x.visible);
     monitorsDivs.forEach((value, index) => {
       value.style.transform = `translate(${monitorsInfo[index].x - value.style.left.match(/\d+/gs)[0]}px, ${monitorsInfo[index].y - value.style.top.match(/\d+/gs)[0]}px)`;
     });
   };
+
+  let reactInst = Object.values(
+    await asyncQuerySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
+  ).find((x) => x.child);
+  let stateNode = reactInst.child.child.child.stateNode;
+  let stageSizeMode = location.pathname.split("/").includes("editor")
+    ? stateNode.props.stageSize
+    : "large";
+  let vm = stateNode.props.vm;
+  top.vm = vm;
 
   vm.runtime.stageWidth = 480;
   vm.runtime.stageHeight = 360;
@@ -126,14 +124,21 @@
         const offsetX = deltaX / 2;
         const offsetY = deltaY / 2;
         for (const monitor of vm.runtime._monitorState.valueSeq()) {
-          const newMonitor = monitor
-            .set("x", monitor.get("x") + offsetX)
-            .set("y", monitor.get("y") + offsetY);
-          vm.runtime.requestUpdateMonitor(newMonitor);
+          vm.runtime.requestUpdateMonitor(
+            new Map([
+              ["id", monitor.get("id")],
+              ["x", monitor.get("x") + offsetX],
+              ["y", monitor.get("y") + offsetY],
+            ]),
+          );
         }
         vm.runtime.emit("MONITORS_UPDATE", vm.runtime._monitorState);
         monitorsDivsUpdate();
       }
+
+      const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset;
+      const penDrawableId = vm.renderer._drawList[penIndexInDrawList];
+      const penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
 
       vm.runtime.stageWidth = width;
       vm.runtime.stageHeight = height;
@@ -145,15 +150,20 @@
       );
       vm.renderer.resize(width, height);
       vm.runtime.emit("STAGE_SIZE_CHANGED", width, height);
+      vm.emit("STAGE_SIZE_CHANGED", width, height);
       window.dispatchEvent(new Event("resize"));
 
-      const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset;
-      const penDrawableId = vm.renderer._drawList[penIndexInDrawList];
-      const penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
-      if ((new vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer)).drawPoint) {
-        const newPenSkin = new vm.renderer._allSkins[penSkinId].constructor(penSkinId, vm.renderer);
+      if (
+        new vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer)
+          .drawPoint
+      ) {
+        const newPenSkin = new vm.renderer._allSkins[penSkinId].constructor(
+          penSkinId,
+          vm.renderer,
+        );
         vm.renderer._allSkins[penSkinId] = newPenSkin;
-        vm.renderer._allDrawables[penDrawableId]._skin = vm.renderer._allSkins[penSkinId];
+        vm.renderer._allDrawables[penDrawableId]._skin =
+          vm.renderer._allSkins[penSkinId];
         vm.renderer._allDrawables[penDrawableId].updateScale([101, 100]);
         vm.renderer._allDrawables[penDrawableId].updateScale([100, 100]);
       }
@@ -163,10 +173,10 @@
   let ogVmRendererResize = vm.renderer.resize;
   vm.renderer.resize = (...args) => {
     reactInst = Object.values(
-        document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
+      document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
     ).find((x) => x.child);
     stateNode = reactInst.child.child.child.stateNode;
-    stageSizeMode = stateNode.props.stageSize
+    stageSizeMode = stateNode.props.stageSize;
     updatePlayerSize(
       vm.runtime.stageWidth,
       vm.runtime.stageHeight,
@@ -177,53 +187,71 @@
   };
   let ogVmToJson = vm.toJSON;
   vm.toJSON = (...args) => {
-    const result = JSON.parse(
-      ogVmToJson.call.apply(ogVmToJson, [
-        vm,
-        ...args,
-      ]),
-    );
+    const result = JSON.parse(ogVmToJson.call.apply(ogVmToJson, [vm, ...args]));
     result.monitors.forEach((x) => {
-      x.x += (480 - vm.runtime.stageWidth) / 2
-      x.y += (360 - vm.runtime.stageHeight) / 2
+      x.x += (480 - vm.runtime.stageWidth) / 2;
+      x.y += (360 - vm.runtime.stageHeight) / 2;
     });
     return JSON.stringify(result);
   };
   let ogVmDeserializeProject = vm.deserializeProject;
   vm.deserializeProject = (...args) => {
-    let result = ogVmDeserializeProject.call.apply(
-      ogVmDeserializeProject,
-      [vm, ...args],
-    );
+    let result = ogVmDeserializeProject.call.apply(ogVmDeserializeProject, [
+      vm,
+      ...args,
+    ]);
     for (const monitor of vm.runtime._monitorState.valueSeq()) {
-      const newMonitor = monitor
-        .set("x", monitor.get("x") + (vm.runtime.stageWidth - 480) / 2)
-        .set("y", monitor.get("y") + (vm.runtime.stageHeight - 360) / 2);
-      vm.runtime.requestUpdateMonitor(newMonitor);
+      vm.runtime.requestUpdateMonitor(
+        new Map([
+          ["id", monitor.get("id")],
+          ["x", monitor.get("x") + (vm.runtime.stageWidth - 480) / 2],
+          ["y", monitor.get("y") + (vm.runtime.stageHeight - 360) / 2],
+        ]),
+      );
     }
     vm.runtime.emit("MONITORS_UPDATE", vm.runtime._monitorState);
-    return result
+    return result;
   };
-  vm.runtime.ioDevices.mouse._stgSzChngrScript = { x: 0, y: 0 };
+  vm.runtime.ioDevices.mouse._userscriptStageSizeChanger = { x: 0, y: 0 };
   Object.defineProperty(vm.runtime.ioDevices.mouse, "_scratchX", {
     set: function (set) {
-      this._stgSzChngrScript.x = Math.round(
+      this._userscriptStageSizeChanger.x = Math.round(
         set * (vm.runtime.stageWidth / 480),
       );
     },
     get: function () {
-      return this._stgSzChngrScript.x;
+      return this._userscriptStageSizeChanger.x;
     },
   });
   Object.defineProperty(vm.runtime.ioDevices.mouse, "_scratchY", {
     set: function (set) {
-      this._stgSzChngrScript.y = Math.round(
+      this._userscriptStageSizeChanger.y = Math.round(
         set * (vm.runtime.stageHeight / 360),
       );
     },
     get: function () {
-      return this._stgSzChngrScript.y;
+      return this._userscriptStageSizeChanger.y;
     },
+  });
+  let monitorsStateClone = vm.runtime._monitorState.map((x) => x);
+  vm.on("MONITORS_UPDATE", () => {
+    for (const monitor of vm.runtime._monitorState.valueSeq()) {
+      if (
+        monitorsStateClone.size > 0 &&
+        monitorsStateClone.get(monitor.get("id")).get("visible") != monitor.get("visible") &&
+        (
+          monitorsStateClone.get(monitor.get("id")).get("x") != monitor.get("x") ||
+          monitorsStateClone.get(monitor.get("id")).get("y") != monitor.get("y")
+        )
+      ) {
+        vm.runtime._monitorState.get(monitor.get("id"))
+          .set("x", monitorsStateClone.get(monitor.get("id")).get("x"))
+          .set("y", monitorsStateClone.get(monitor.get("id")).get("y"));
+        console.log(vm.runtime._monitorState.get(monitor.get("id")));
+      }
+    }
+    monitorsStateClone = vm.runtime._monitorState.map((x) => x);
+    monitorsDivsUpdate();
   });
 
   updatePlayerSize(
@@ -238,8 +266,10 @@
         await asyncQuerySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
       ).find((x) => x.child);
       stateNode = reactInst.child.child.child.stateNode;
-      stageSizeMode = stateNode.props.stageSize
+      stageSizeMode = stateNode.props.stageSize;
     }
+    vm.runtime._monitorState = monitorsStateClone.map((x) => x);
+    monitorsDivsUpdate();
     updatePlayerSize(
       vm.runtime.stageWidth,
       vm.runtime.stageHeight,
