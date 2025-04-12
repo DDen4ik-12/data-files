@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        stageSizeChanger
-// @version     1.0-alpha.4
+// @version     1.0-alpha.5
 // @author      Den4ik-12
 // @include     https://scratch.mit.edu/projects/*
 // @include     https://lab.scratch.mit.edu/*
@@ -97,7 +97,7 @@
       .toArray()
       .filter((x) => x.visible);
     monitorsDivs.forEach((value, index) => {
-      value.style.transform = `translate(${monitorsInfo[index].x - value.style.left.match(/\d+/gs)[0]}px, ${monitorsInfo[index].y - value.style.top.match(/\d+/gs)[0]}px)`;
+      value.style.transform = `translate(${monitorsInfo[index]?.x - value.style.left.match(/\d+/gs)[0]}px, ${monitorsInfo[index]?.y - value.style.top.match(/\d+/gs)[0]}px)`;
     });
   };
 
@@ -244,10 +244,13 @@
           monitorsStateClone.get(monitor.get("id")).get("y") != monitor.get("y")
         )
       ) {
-        vm.runtime._monitorState.get(monitor.get("id"))
-          .set("x", monitorsStateClone.get(monitor.get("id")).get("x"))
-          .set("y", monitorsStateClone.get(monitor.get("id")).get("y"));
-        console.log(vm.runtime._monitorState.get(monitor.get("id")));
+        vm.runtime.requestUpdateMonitor(
+          new Map([
+            ["id", monitor.get("id")],
+            ["x", monitorsStateClone.get(monitor.get("id")).get("x")],
+            ["y", monitorsStateClone.get(monitor.get("id")).get("y")],
+          ]),
+        );
       }
     }
     monitorsStateClone = vm.runtime._monitorState.map((x) => x);
