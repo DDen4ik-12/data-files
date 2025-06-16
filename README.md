@@ -1,7 +1,18 @@
 <hr>
 
+# Scratch Follow Viewports Fix
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js)
+
+<hr>
+
+"Scratch Follow Viewports Fix" is a userscript for the Scratch[^1] website that returns the old display of Scratchers in your profile in the "Following" and "Followers" sections
+
+<br>
+
+<hr>
+
 # Stage Size Changer
-### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/stageSizeChanger.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)
 
 <hr>
 
