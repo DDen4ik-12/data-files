@@ -10,7 +10,7 @@
 ### Before:
 ![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
 * "Following" section is sorted by registration date
-* "Followed" section is sorted from the first followers to the last
+* "Followers" section is sorted from the first followers to the last
 
 ### After:
 ![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixAfter.png)
