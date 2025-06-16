@@ -1,11 +1,11 @@
 <hr>
 
 # Scratch Follow Viewports Fix
-### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js)
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript[^1]](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js)
 
 <hr>
 
-"Scratch Follow Viewports Fix" is a userscript for the Scratch[^1] website that returns the old sorting (from the last to the first) of Scratchers in your profile in the "Following" and "Followers" sections
+"Scratch Follow Viewports Fix" is a userscript for the Scratch[^2] website that returns the old sorting (from the last to the first) of Scratchers in your profile in the "Following" and "Followers" sections
 
 ### Before:
 ![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
@@ -20,11 +20,11 @@
 <hr>
 
 # Stage Size Changer
-### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/stageSizeChanger.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/stageSizeChanger.user.js) | [🟩 Download userscript[^1]](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)
 
 <hr>
 
-"Stage Size Changer" is a userscript for the Scratch[^1] website that allows you to change the stage size from 480×360 to something else
+"Stage Size Changer" is a userscript for the Scratch[^2] website that allows you to change the stage size from 480×360 to something else
 
 The userscript adds:
 * VM patches related to adding the ability to resize the stage
@@ -38,4 +38,5 @@ The userscript adds:
 > [!WARNING]
 > Userscript is currently in alpha release and may be unstable!
 
-[^1]: Scratch is a project of the Scratch Foundation. It is available for free at https://scratch.org/
+[^1]: Before installing userscript, do not forget to install the script manager (for example [Tampermonkey](https://www.tampermonkey.net/))
+[^2]: Scratch is a project of the Scratch Foundation. It is available for free at https://scratch.org/
