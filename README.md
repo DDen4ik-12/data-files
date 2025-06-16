@@ -1,7 +1,7 @@
 <hr>
 
 # Scratch Follow Viewports Fix
-### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript[^1]](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js)
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/scratchFollowViewportsFix.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/scratchFollowViewportsFix.user.js)[^1]
 
 <hr>
 
@@ -20,7 +20,7 @@
 <hr>
 
 # Stage Size Changer
-### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/stageSizeChanger.user.js) | [🟩 Download userscript[^1]](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)
+### [📄 File in GitHub](https://github.com/DDen4ik-12/data-files/blob/main/stageSizeChanger.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js)[^1]
 
 <hr>
 
