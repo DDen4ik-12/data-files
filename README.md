@@ -5,7 +5,15 @@
 
 <hr>
 
-"Scratch Follow Viewports Fix" is a userscript for the Scratch[^1] website that returns the old display of Scratchers in your profile in the "Following" and "Followers" sections
+"Scratch Follow Viewports Fix" is a userscript for the Scratch[^1] website that returns the old sorting (from the last to the first) of Scratchers in your profile in the "Following" and "Followers" sections
+
+### Before:
+![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
+* "Following" section is sorted by registration date
+* "Followed" section is sorted from the first followers to the last
+
+### After:
+![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixAfter.png)
 
 <br>
 
@@ -25,7 +33,7 @@ The userscript adds:
 * Blocks `have "Stage Size Changer"?`, `StageSC: stage width`, `StageSC: stage height`
 
 ### Example with 360×640 stage size:
-![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageScExample.png)
+![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerExample.png)
 
 > [!WARNING]
 > Userscript is currently in alpha release and may be unstable!
