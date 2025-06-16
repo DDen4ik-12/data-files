@@ -5,7 +5,7 @@
 
 <hr>
 
-"Scratch Follow Viewports Fix" is a userscript for the Scratch[^2] website that returns the old sorting (from the last to the first) of Scratchers in your profile in the "Following" and "Followers" sections
+"Scratch Follow Viewports Fix" is a userscript for the Scratch[^2] website that returns the old sorting (from the last to the first) of Scratchers in profiles in the "Following" and "Followers" sections
 
 ### Before:
 ![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
