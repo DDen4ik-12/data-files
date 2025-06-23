@@ -8,12 +8,12 @@
 "Scratch Follow Viewports Fix" is a userscript for the Scratch[^2] website that returns the old sorting (from the last to the first) of Scratchers in profiles in the "Following" and "Followers" sections
 
 ### Before:
-![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
+![Before](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixBefore.png)
 * "Following" section is sorted by registration date
 * "Followers" section is sorted from the first followers to the last
 
 ### After:
-![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixAfter.png)
+![After](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/scratchFollowViewportsFixAfter.png)
 
 <br>
 
@@ -30,7 +30,11 @@ The userscript adds:
 * VM patches related to adding the ability to resize the stage
 * A button in the stage controls to resize the stage
 * A label in the stage controls that shows the position of the mouse cursor on the stage
-* Blocks `have "Stage Size Changer"?`, `stage width`, `stage height`, `set stage size width: () height: ()`
+* New category "StageSC" ![StageSC category](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerCategory.png) and blocks:
+
+![StageSC blocks](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerBlocks.png)
+
+`have "Stage Size Changer"?`, `stage width`, `stage height`, `set stage size width: () height: ()`
 
 ### Example with 360×640 stage size:
 ![Example with 360×640 stage size](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerExample.png)
