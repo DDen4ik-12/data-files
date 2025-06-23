@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name        stageSizeChanger
-// @version     1.0-alpha.7
+// @version     1.0-alpha.8
 // @author      Den4ik-12
 // @description Userscript for the Scratch website that allows you to resize the scene.
 // @match       https://scratch.mit.edu/projects/*
 // @match       https://lab.scratch.mit.edu/*
 // @grant       none
+// @run-at      document-start
 // @namespace   stageSizeChanger
 // @downloadURL https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js
 // @updateURL   https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/stageSizeChanger.user.js
@@ -142,6 +143,87 @@
     return;
   }
 
+  // Utilites
+  const escapeHTML = (str) =>
+      str.replace(/([<>'"&])/g, (_, l) => `&#${l.charCodeAt(0)};`),
+    overrideFunction = function (func, overrider) {
+      const ogFunction = func;
+      return function (...args) {
+        return overrider.call(this, ogFunction.bind(this), ...args);
+      };
+    },
+    hex2Hsl = (hex) => {
+      let r = 0,
+        g = 0,
+        b = 0;
+      if (hex.length == 4 || hex.length == 5) {
+        r = parseInt(hex[1] + hex[1], 16);
+        g = parseInt(hex[2] + hex[2], 16);
+        b = parseInt(hex[3] + hex[3], 16);
+      } else if (hex.length == 7 || hex.length == 9) {
+        r = parseInt(hex.substring(1, 3), 16);
+        g = parseInt(hex.substring(3, 5), 16);
+        b = parseInt(hex.substring(5, 7), 16);
+      }
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      let max = Math.max(r, g, b),
+        min = Math.min(r, g, b),
+        h,
+        s,
+        l = (max + min) / 2;
+      if (max === min) {
+        h = s = 0;
+      } else {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r:
+            h = (g - b) / d + (g < b ? 6 : 0);
+            break;
+          case g:
+            h = (b - r) / d + 2;
+            break;
+          case b:
+            h = (r - g) / d + 4;
+            break;
+        }
+        h /= 6;
+      }
+      return [h, s, l];
+    },
+    hsl2Hex = (h, s, l) => {
+      let r, g, b;
+      if (s == 0) {
+        r = g = b = l;
+      } else {
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s,
+          p = 2 * l - q,
+          hue2Rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+          };
+        r = hue2Rgb(p, q, h + 1 / 3);
+        g = hue2Rgb(p, q, h);
+        b = hue2Rgb(p, q, h - 1 / 3);
+      }
+      r = Math.round(r * 255)
+        .toString(16)
+        .padStart(2, "0");
+      g = Math.round(g * 255)
+        .toString(16)
+        .padStart(2, "0");
+      b = Math.round(b * 255)
+        .toString(16)
+        .padStart(2, "0");
+      return `#${r}${g}${b}`;
+    };
+
   // Player style
   const resizePlayerStyle = document.createElement("style");
   document.head.appendChild(resizePlayerStyle);
@@ -215,9 +297,9 @@
   // Monitors div's update
   const monitorsDivsUpdate = () => {
     const monitorsDivs = document.querySelectorAll(
-      'div[class^="monitor_monitor-container_"]',
-    );
-    const monitorsInfo = monitorsStateClone.toArray().filter((x) => x.visible);
+        'div[class^="monitor_monitor-container_"]',
+      ),
+      monitorsInfo = monitorsStateClone.toArray().filter((x) => x.visible);
     monitorsDivs.forEach((value, index) => {
       value.style.transform = `translate(${monitorsInfo[index]?.x - value.style.left.match(/\d+/gs)[0]}px, ${monitorsInfo[index]?.y - value.style.top.match(/\d+/gs)[0]}px)`;
     });
@@ -259,8 +341,8 @@
     siteDifferences[location.host]?.outlinedStageButton;
   openSettingsButton.button.role = "button";
   openSettingsButton.button.addEventListener("click", () => {
-    const width = prompt("Stage width", vm.runtime.stageWidth);
-    const height = prompt("Stage height", vm.runtime.stageHeight);
+    const width = prompt("Stage width", vm.runtime.stageWidth),
+      height = prompt("Stage height", vm.runtime.stageHeight);
     if (width == null || height == null) {
       return;
     }
@@ -292,39 +374,43 @@
   top.userscriptStageSizeChanger = instancesGroup;
 
   const asyncGetStageWrapperState = async () =>
-    Object.values(
-      await asyncQuerySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
-    ).find((x) => x.child).child.child.child.stateNode;
-  const getStageWrapperState = () =>
-    Object.values(
-      document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
-    ).find((x) => x.child).child.child.child.stateNode;
-  const getScratchBlocks = async () => {
-    let wrapper = await asyncQuerySelector('[class^="gui_blocks-wrapper"]');
-    let reactInternalKey = Object.keys(wrapper).find((key) =>
-      key.startsWith("__reactInternalInstance$"),
-    );
-    const internal = wrapper[reactInternalKey];
-    let childable = internal;
-    while (
-      ((childable = childable.child),
-      !childable || !childable.stateNode || !childable.stateNode.ScratchBlocks)
-    ) {}
-    return childable.stateNode.ScratchBlocks;
-  };
+      Object.values(
+        await asyncQuerySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
+      ).find((x) => x.child).child.child.child.stateNode,
+    getStageWrapperState = () =>
+      Object.values(
+        document.querySelector('div[class^="stage-wrapper_stage-wrapper_"]'),
+      ).find((x) => x.child).child.child.child.stateNode,
+    getBlocksComponent = async () => {
+      let wrapper = await asyncQuerySelector('[class^="gui_blocks-wrapper"]');
+      let reactInternalKey = Object.keys(wrapper).find((key) =>
+        key.startsWith("__reactInternalInstance$"),
+      );
+      const internal = wrapper[reactInternalKey];
+      let childable = internal;
+      while (
+        ((childable = childable.child),
+        !childable ||
+          !childable.stateNode ||
+          !childable.stateNode.ScratchBlocks)
+      ) {}
+      return childable.stateNode;
+    };
 
-  let stageWrapperState = await asyncGetStageWrapperState();
-  let stageSizeMode = siteDifferences[location.host].pagesCheck.editor()
-    ? stageWrapperState.props.stageSize
-    : "large";
-  let vm = stageWrapperState.props.vm;
-  let ScratchBlocks;
+  let stageWrapperState = await asyncGetStageWrapperState(),
+    stageSizeMode = siteDifferences[location.host].pagesCheck.editor()
+      ? stageWrapperState.props.stageSize
+      : "large",
+    vm = stageWrapperState.props.vm,
+    blocksComponent,
+    ScratchBlocks;
   if (siteDifferences[location.host].pagesCheck.editor()) {
-    ScratchBlocks = await getScratchBlocks();
+    blocksComponent = await getBlocksComponent();
+    ScratchBlocks = blocksComponent.ScratchBlocks;
   }
-  Object.assign(instancesGroup, { vm, ScratchBlocks });
+  Object.assign(instancesGroup, { vm, blocksComponent, ScratchBlocks });
 
-  // VM patches
+  // Patches: Stage size properties
   vm.runtime.stageWidth = 480;
   vm.runtime.stageHeight = 360;
   vm.runtime.setStageSize = (width, height) => {
@@ -333,12 +419,12 @@
     if (vm.runtime.stageWidth !== width || vm.runtime.stageHeight !== height) {
       mousePosLabel.style.width = `${0.625 * 0.55 * (width.toString().length + height.toString().length + 4)}rem`;
 
-      const deltaX = width - vm.runtime.stageWidth;
-      const deltaY = height - vm.runtime.stageHeight;
+      const deltaX = width - vm.runtime.stageWidth,
+        deltaY = height - vm.runtime.stageHeight;
 
       if (vm.runtime._monitorState.size > 0) {
-        const offsetX = deltaX / 2;
-        const offsetY = deltaY / 2;
+        const offsetX = deltaX / 2,
+          offsetY = deltaY / 2;
         for (const monitor of vm.runtime._monitorState.valueSeq()) {
           vm.runtime.requestUpdateMonitor(
             new Map([
@@ -352,9 +438,9 @@
         monitorsDivsUpdate();
       }
 
-      const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset;
-      const penDrawableId = vm.renderer._drawList[penIndexInDrawList];
-      const penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
+      const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset,
+        penDrawableId = vm.renderer._drawList[penIndexInDrawList],
+        penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
 
       vm.runtime.stageWidth = width;
       vm.runtime.stageHeight = height;
@@ -386,45 +472,63 @@
     }
   };
   vm.setStageSize = vm.runtime.setStageSize;
+  Object.defineProperty(vm.runtime.constructor, "STAGE_WIDTH", {
+    set: () => {},
+    get: () => {
+      return vm.runtime.stageWidth;
+    },
+  });
+  Object.defineProperty(vm.runtime.constructor, "STAGE_HEIGHT", {
+    set: () => {},
+    get: () => {
+      return vm.runtime.stageHeight;
+    },
+  });
 
-  let ogVmRendererResize = vm.renderer.resize;
-  vm.renderer.resize = function (...args) {
-    stageWrapperState = getStageWrapperState();
-    stageSizeMode = stageWrapperState.props.stageSize;
-    updatePlayerSize(
-      vm.runtime.stageWidth,
-      vm.runtime.stageHeight,
-      stageSizeMode,
-    );
-    ogVmRendererResize.call(this, ...args);
-    window.dispatchEvent(new Event("resize"));
-  };
+  // Patches: Resize
+  vm.renderer.resize = overrideFunction(
+    vm.renderer.resize,
+    (ogMethod, ...args) => {
+      stageWrapperState = getStageWrapperState();
+      stageSizeMode = stageWrapperState.props.stageSize;
+      updatePlayerSize(
+        vm.runtime.stageWidth,
+        vm.runtime.stageHeight,
+        stageSizeMode,
+      );
+      ogMethod(...args);
+      window.dispatchEvent(new Event("resize"));
+    },
+  );
 
-  let ogVmToJson = vm.toJSON;
-  vm.toJSON = function (...args) {
-    const result = JSON.parse(ogVmToJson.call(this, ...args));
+  // Patches: Project save and load
+  vm.toJSON = overrideFunction(vm.toJSON, (ogMethod, ...args) => {
+    const result = JSON.parse(ogMethod(...args));
     result.monitors.forEach((x) => {
       x.x += (480 - vm.runtime.stageWidth) / 2;
       x.y += (360 - vm.runtime.stageHeight) / 2;
     });
     return JSON.stringify(result);
-  };
-  let ogVmDeserializeProject = vm.deserializeProject;
-  vm.deserializeProject = function (...args) {
-    let result = ogVmDeserializeProject.call(this, ...args);
-    for (const monitor of vm.runtime._monitorState.valueSeq()) {
-      vm.runtime.requestUpdateMonitor(
-        new Map([
-          ["id", monitor.get("id")],
-          ["x", monitor.get("x") + (vm.runtime.stageWidth - 480) / 2],
-          ["y", monitor.get("y") + (vm.runtime.stageHeight - 360) / 2],
-        ]),
-      );
-    }
-    vm.runtime.emit("MONITORS_UPDATE", vm.runtime._monitorState);
-    return result;
-  };
+  });
+  vm.deserializeProject = overrideFunction(
+    vm.deserializeProject,
+    (ogMethod, ...args) => {
+      const result = ogMethod(...args);
+      for (const monitor of vm.runtime._monitorState.valueSeq()) {
+        vm.runtime.requestUpdateMonitor(
+          new Map([
+            ["id", monitor.get("id")],
+            ["x", monitor.get("x") + (vm.runtime.stageWidth - 480) / 2],
+            ["y", monitor.get("y") + (vm.runtime.stageHeight - 360) / 2],
+          ]),
+        );
+      }
+      vm.runtime.emit("MONITORS_UPDATE", vm.runtime._monitorState);
+      return result;
+    },
+  );
 
+  // Patches: Mouse position
   vm.runtime.ioDevices.mouse._userscriptStageSizeChanger = { x: 0, y: 0 };
   Object.defineProperty(vm.runtime.ioDevices.mouse, "_scratchX", {
     set: function (set) {
@@ -449,6 +553,7 @@
     },
   });
 
+  // Patches: Monitors update
   let monitorsStateClone = vm.runtime._monitorState.map((x) => x);
   vm.on("MONITORS_UPDATE", () => {
     for (const monitor of vm.runtime._monitorState.valueSeq()) {
@@ -475,198 +580,577 @@
     monitorsDivsUpdate();
   });
 
-  const checkUserscriptBlocks = (flag) => {
-    switch (flag) {
-      case '⇱ have "Stage Size Changer"?':
-        return true;
-      case "⇱ StageSC: stage width":
-        return vm.runtime.stageWidth;
-      case "⇱ StageSC: stage height":
-        return vm.runtime.stageHeight;
-    }
-    return null;
-  };
-  const ogVmPrmtvsArgRprtrBool =
-    vm.runtime._primitives.argument_reporter_boolean;
-  vm.runtime._primitives.argument_reporter_boolean = function (...args) {
-    return ((originalMethod, args, util) => {
-      const flag = String(args.VALUE);
-      const value = util.getParam(flag);
-      if (value === null) {
-        return (
-          checkUserscriptBlocks(String(flag)) ?? originalMethod?.(args, util)
+  // Patches: Blocks and toolbox
+  const userscriptBlocks = {},
+    usBlkParamNamesIdsDflt = {},
+    getUsCategoryColor = () => {
+      const themeConvert = (hex, type) => {
+        const userscriptHsl = hex2Hsl(hex),
+          newMotionHsl = hex2Hsl(ScratchBlocks.Colours.motion[type]),
+          oldMotionHsl = hex2Hsl(
+            {
+              primary: "#4c97ff",
+              secondary: "#4280d7",
+              tertiary: "#3373cc",
+              quaternary: "#3373cc",
+            }[type],
+          );
+        return hsl2Hex(
+          userscriptHsl[0],
+          Math.max(
+            Math.min(userscriptHsl[1] * (newMotionHsl[1] / oldMotionHsl[1]), 1),
+            0,
+          ),
+          Math.max(
+            Math.min(userscriptHsl[2] * (newMotionHsl[2] / oldMotionHsl[2]), 1),
+            0,
+          ),
         );
+      };
+      return {
+        primary: themeConvert("#8c9abf", "primary"),
+        secondary: themeConvert("#7d8aab", "secondary"),
+        tertiary: themeConvert("#6f7b99", "tertiary"),
+        quaternary: themeConvert("#6f7b99", "quaternary"),
+      };
+    },
+    getUserscriptBlock = (procedureCode) => {
+      if (!Object.hasOwn(userscriptBlocks, procedureCode)) {
+        return;
+      }
+      return userscriptBlocks[procedureCode];
+    },
+    parseArguments = (code) =>
+      code
+        .split(/(?=[^\\]%[nbs])/g)
+        .map((i) => i.trim())
+        .filter((i) => i.charAt(0) == "%")
+        .map((i) => i.substring(0, 2)),
+    fixDisplayName = (displayName) =>
+      displayName.replace(
+        /([^\s])(%[nbs])/g,
+        (_, before, arg) => `${before} ${arg}`,
+      ),
+    getNamesIdsDefaults = (blockData) => [
+      blockData.args,
+      blockData.args.map((_, i) => `arg${i}`),
+      blockData.args.map((_, i) => ""),
+    ],
+    generateUsBlocksXML = () => {
+      let xml = "";
+      for (const procedureCode of Object.keys(userscriptBlocks)) {
+        const blockData = userscriptBlocks[procedureCode];
+        if (blockData.hidden) continue;
+        const [names, ids, defaults] = getNamesIdsDefaults(blockData);
+        if (blockData.type == "command") {
+          xml +=
+            '<block type="procedures_call" gap="16"><mutation generateshadows="true" warp="false"' +
+            ` proccode="${escapeHTML(procedureCode)}"` +
+            ` argumentnames="${escapeHTML(JSON.stringify(names))}"` +
+            ` argumentids="${escapeHTML(JSON.stringify(ids))}"` +
+            ` argumentdefaults="${escapeHTML(JSON.stringify(defaults))}"` +
+            "></mutation></block>";
+        } else if (blockData.type == "reporter") {
+          xml +=
+            '<block type="argument_reporter_string_number" gap="16">' +
+            `<field name="VALUE">${escapeHTML(
+              `\u200B\u200BuserscriptStageSizeChanger\u200B\u200B${JSON.stringify(
+                {
+                  id: blockData.id,
+                },
+              )}`,
+            )}</field>` +
+            '<mutation generateshadows="true" warp="false"' +
+            ` proccode="${escapeHTML(procedureCode)}"` +
+            "></mutation></block>";
+        } else if (blockData.type == "boolean") {
+          xml +=
+            '<block type="argument_reporter_boolean" gap="16">' +
+            `<field name="VALUE">${escapeHTML(
+              `\u200B\u200BuserscriptStageSizeChanger\u200B\u200B${JSON.stringify(
+                {
+                  id: blockData.id,
+                },
+              )}`,
+            )}</field>` +
+            '<mutation generateshadows="true" warp="false"' +
+            ` proccode="${escapeHTML(procedureCode)}"` +
+            "></mutation></block>";
+        }
+      }
+      return xml;
+    },
+    addUserscriptBlock = (
+      procedureCode,
+      displayName,
+      args,
+      type,
+      handler,
+      hidden,
+    ) => {
+      if (getUserscriptBlock(procedureCode)) {
+        return;
+      }
+      const procCodeArgs = parseArguments(procedureCode);
+      if (args.length !== procCodeArgs.length) {
+        return;
+      }
+      if (displayName) {
+        displayName = fixDisplayName(displayName);
+        const displayNameArgs = parseArguments(displayName);
+        if (JSON.stringify(procCodeArgs) != JSON.stringify(displayNameArgs)) {
+          displayName = procedureCode;
+        }
+      } else {
+        displayName = procedureCode;
+      }
+      const blockData = {
+        id: procedureCode,
+        displayName,
+        args,
+        type,
+        handler,
+        hidden,
+      };
+      userscriptBlocks[procedureCode] = blockData;
+      usBlkParamNamesIdsDflt[procedureCode] = getNamesIdsDefaults(blockData);
+    };
+  vm.runtime.monitorBlocks.constructor.prototype.getProcedureParamNamesIdsAndDefaults =
+    overrideFunction(
+      vm.runtime.monitorBlocks.constructor.prototype
+        .getProcedureParamNamesIdsAndDefaults,
+      (ogMethod, name) => {
+        return usBlkParamNamesIdsDflt[name] || ogMethod(name);
+      },
+    );
+  vm.runtime.sequencer.stepToProcedure = overrideFunction(
+    vm.runtime.sequencer.stepToProcedure,
+    (ogMethod, thread, procedureCode) => {
+      const blockData = getUserscriptBlock(procedureCode);
+      if (blockData) {
+        const stackFrame = thread.peekStackFrame();
+        blockData.handler(stackFrame.params, thread);
+        return;
+      }
+      return ogMethod(thread, procedureCode);
+    },
+  );
+  vm.runtime._primitives.argument_reporter_string_number = overrideFunction(
+    vm.runtime._primitives.argument_reporter_string_number,
+    (ogMethod, args, util) => {
+      const flag = String(args.VALUE),
+        value = util.getParam(flag);
+      if (value == null) {
+        let id;
+        if (
+          flag.startsWith("\u200B\u200BuserscriptStageSizeChanger\u200B\u200B")
+        ) {
+          try {
+            id = JSON.parse(
+              flag.replace(
+                /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                "",
+              ),
+            ).id;
+          } catch {}
+        }
+        const blockData = getUserscriptBlock(id);
+        return blockData
+          ? blockData.handler(args, util)
+          : ogMethod?.(args, util);
       }
       return value;
-    }).call(this, ogVmPrmtvsArgRprtrBool.bind(this), ...args);
-  };
-  const ogVmPrmtvsArgRprtrStrNum =
-    vm.runtime._primitives.argument_reporter_string_number;
-  vm.runtime._primitives.argument_reporter_string_number = function (...args) {
-    return ((originalMethod, args, util) => {
-      const flag = String(args.VALUE);
-      const value = util.getParam(flag);
-      if (value === null) {
-        return (
-          checkUserscriptBlocks(String(flag)) ?? originalMethod?.(args, util)
-        );
+    },
+  );
+  vm.runtime._primitives.argument_reporter_boolean = overrideFunction(
+    vm.runtime._primitives.argument_reporter_boolean,
+    (ogMethod, args, util) => {
+      const flag = String(args.VALUE),
+        value = util.getParam(flag);
+      if (value == null) {
+        let id;
+        if (
+          flag.startsWith("\u200B\u200BuserscriptStageSizeChanger\u200B\u200B")
+        ) {
+          try {
+            id = JSON.parse(
+              flag.replace(
+                /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                "",
+              ),
+            ).id;
+          } catch {}
+        }
+        const blockData = getUserscriptBlock(id);
+        return blockData
+          ? blockData.handler(args, util)
+          : ogMethod?.(args, util);
       }
       return value;
-    }).call(this, ogVmPrmtvsArgRprtrStrNum.bind(this), ...args);
-  };
-
-  // Toolbox patches
-  const injectToolbox = (xmlList, workspace) => {
-    const sep = document.createElement("sep");
-    sep.setAttribute("gap", "36");
-    xmlList.push(sep);
-
-    const label = document.createElement("label");
-    label.setAttribute("text", "⇱ Stage Size Changer");
-    xmlList.push(label);
-
-    let blocksGroup = new Array();
-
-    blocksGroup[0] = new Object();
-    blocksGroup[0].mutation = document.createElement("mutation");
-    blocksGroup[0].field = document.createElement("field");
-    blocksGroup[0].field.setAttribute("name", "VALUE");
-    blocksGroup[0].field.innerHTML = '⇱ have "Stage Size Changer"?';
-    blocksGroup[0].block = document.createElement("block");
-    blocksGroup[0].block.setAttribute("type", "argument_reporter_boolean");
-    blocksGroup[0].block.setAttribute("gap", "16");
-    blocksGroup[0].block.appendChild(blocksGroup[0].field);
-    blocksGroup[0].block.appendChild(blocksGroup[0].mutation);
-    xmlList.push(blocksGroup[0].block);
-
-    blocksGroup[1] = new Object();
-    blocksGroup[1].mutation = document.createElement("mutation");
-    blocksGroup[1].field = document.createElement("field");
-    blocksGroup[1].field.setAttribute("name", "VALUE");
-    blocksGroup[1].field.innerHTML = "⇱ StageSC: stage width";
-    blocksGroup[1].block = document.createElement("block");
-    blocksGroup[1].block.setAttribute(
-      "type",
-      "argument_reporter_string_number",
-    );
-    blocksGroup[1].block.setAttribute("gap", "16");
-    blocksGroup[1].block.appendChild(blocksGroup[1].field);
-    blocksGroup[1].block.appendChild(blocksGroup[1].mutation);
-    xmlList.push(blocksGroup[1].block);
-
-    blocksGroup[2] = new Object();
-    blocksGroup[2].mutation = document.createElement("mutation");
-    blocksGroup[2].field = document.createElement("field");
-    blocksGroup[2].field.setAttribute("name", "VALUE");
-    blocksGroup[2].field.innerHTML = "⇱ StageSC: stage height";
-    blocksGroup[2].block = document.createElement("block");
-    blocksGroup[2].block.setAttribute(
-      "type",
-      "argument_reporter_string_number",
-    );
-    blocksGroup[2].block.setAttribute("gap", "16");
-    blocksGroup[2].block.appendChild(blocksGroup[2].field);
-    blocksGroup[2].block.appendChild(blocksGroup[2].mutation);
-    xmlList.push(blocksGroup[2].block);
-
-    return xmlList;
-  };
+    },
+  );
   const applyToolboxPatches = () => {
-    const isModernBlockly = ScratchBlocks.__esModule;
-    if (isModernBlockly) {
-      const toolboxCallbacks =
-        ScratchBlocks.getMainWorkspace()?.toolboxCategoryCallbacks;
-      const ogCallback = toolboxCallbacks.get("PROCEDURE");
-      toolboxCallbacks.set("PROCEDURE", function (workspace) {
-        const xmlList = ogCallback.call(this, workspace);
-        injectToolbox(xmlList, workspace);
-        return xmlList;
-      });
-      const ogWSvgRegTlbxCtgClbk =
-        ScratchBlocks.WorkspaceSvg.prototype.registerToolboxCategoryCallback;
-      ScratchBlocks.WorkspaceSvg.prototype.registerToolboxCategoryCallback =
-        function (...args) {
-          return ((ogMethod, key, callback) => {
-            if (key === "PROCEDURE") {
-              const ogCallback = callback;
-              callback = function (workspace) {
-                const xmlList = ogCallback.call(this, workspace);
-                injectToolbox(xmlList, workspace);
-                return xmlList;
+    if (ScratchBlocks.registry) {
+      ScratchBlocks.BlockSvg.prototype.applyColour = overrideFunction(
+        ScratchBlocks.BlockSvg.prototype.applyColour,
+        function (ogMethod, ...args) {
+          if (
+            (!this.isInsertionMarker() && this.type == "procedures_call") ||
+            ((this.type == "argument_reporter_string_number" ||
+              this.type == "argument_reporter_boolean") &&
+              this.inputList[0].fieldRow[0].text_.startsWith(
+                "\u200B\u200BuserscriptStageSizeChanger\u200B\u200B",
+              ))
+          ) {
+            let id;
+            if (this.type != "procedures_call") {
+              try {
+                id = JSON.parse(
+                  this.inputList[0].fieldRow[0].text_.replace(
+                    /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                    "",
+                  ),
+                ).id;
+              } catch {}
+            }
+            const block =
+                this.type == "procedures_call"
+                  ? this.procCode_ && getUserscriptBlock(this.procCode_)
+                  : getUserscriptBlock(id),
+              color = getUsCategoryColor();
+            if (block) {
+              this.style = {
+                ...this.style,
+                colourPrimary: color.primary,
+                colourSecondary: color.secondary,
+                colourTertiary: color.tertiary,
+                colourQuaternary: color.quaternary,
               };
-              return ogMethod(key, callback);
+              this.pathObject.setStyle(this.style);
+              this.customContextMenu = null;
             }
-          }).call(this, ogWSvgRegTlbxCtgClbk.bind(this), ...args);
-        };
-      const ogBlksArgRprtrBoolInit =
-        ScratchBlocks.Blocks.argument_reporter_boolean.init;
-      ScratchBlocks.Blocks.argument_reporter_boolean.init = function (...args) {
-        return ((originalMethod) => {
-          originalMethod();
-          queueMicrotask(() => {
-            if (
-              this.getFieldValue("VALUE") === '⇱ have "Stage Size Changer"?' &&
-              !(
-                this.dragStrategy instanceof
-                ScratchBlocks.dragging.BlockDragStrategy
-              ) &&
-              !this.isInFlyout
-            ) {
-              this.setDragStrategy(
-                new ScratchBlocks.dragging.BlockDragStrategy(this),
-              );
-              this.dragStrategy.block?.dispose();
-            }
-          });
-        }).call(this, ogBlksArgRprtrBoolInit.bind(this), ...args);
-      };
-      const ogBlksArgRprtrStrNumInit =
-        ScratchBlocks.Blocks.argument_reporter_string_number.init;
-      ScratchBlocks.Blocks.argument_reporter_string_number.init = function (
-        ...args
-      ) {
-        return ((originalMethod) => {
-          originalMethod();
-          queueMicrotask(() => {
-            if (
-              (this.getFieldValue("VALUE") === "⇱ StageSC: stage width" ||
-                this.getFieldValue("VALUE") === "⇱ StageSC: stage heigth") &&
-              !(
-                this.dragStrategy instanceof
-                ScratchBlocks.dragging.BlockDragStrategy
-              ) &&
-              !this.isInFlyout
-            ) {
-              this.setDragStrategy(
-                new ScratchBlocks.dragging.BlockDragStrategy(this),
-              );
-              this.dragStrategy.block?.dispose();
-            }
-          });
-        }).call(this, ogBlksArgRprtrStrNumInit.bind(this), ...args);
-      };
+          }
+          return ogMethod(...args);
+        },
+      );
     } else {
-      const ogProcAddCreateButton = ScratchBlocks.Procedures.addCreateButton_;
-      ScratchBlocks.Procedures.addCreateButton_ = function (...args) {
-        return ((originalMethod, workspace, xmlList) => {
-          originalMethod?.(workspace, xmlList);
-          injectToolbox(xmlList, workspace);
-        }).call(this, ogProcAddCreateButton.bind(this), ...args);
-      };
+      ScratchBlocks.BlockSvg.prototype.updateColour = overrideFunction(
+        ScratchBlocks.BlockSvg.prototype.updateColour,
+        function (ogMethod, ...args) {
+          if (
+            (!this.isInsertionMarker() && this.type == "procedures_call") ||
+            ((this.type == "argument_reporter_string_number" ||
+              this.type == "argument_reporter_boolean") &&
+              this.inputList[0].fieldRow[0].text_.startsWith(
+                "\u200B\u200BuserscriptStageSizeChanger\u200B\u200B",
+              ))
+          ) {
+            let id;
+            if (this.type != "procedures_call") {
+              try {
+                id = JSON.parse(
+                  this.inputList[0].fieldRow[0].text_.replace(
+                    /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                    "",
+                  ),
+                ).id;
+              } catch {}
+            }
+            const block =
+                this.type == "procedures_call"
+                  ? this.procCode_ && getUserscriptBlock(this.procCode_)
+                  : getUserscriptBlock(id),
+              color = getUsCategoryColor();
+            if (block) {
+              this.colour_ = color.primary;
+              this.colourSecondary_ = color.secondary;
+              this.colourTertiary_ = color.tertiary;
+              this.colourQuaternary_ = color.quaternary;
+              this.customContextMenu = null;
+            }
+          }
+          return ogMethod(...args);
+        },
+      );
     }
+    ScratchBlocks.BlockSvg.prototype.render = overrideFunction(
+      ScratchBlocks.BlockSvg.prototype.render,
+      function (ogMethod, optBubble) {
+        if (
+          (this.type == "argument_reporter_string_number" ||
+            this.type == "argument_reporter_boolean") &&
+          this.inputList[0].fieldRow[0].text_.startsWith(
+            "\u200B\u200BuserscriptStageSizeChanger\u200B\u200B",
+          )
+        ) {
+          const ogText = this.inputList[0].fieldRow[0].text_;
+          try {
+            this.inputList[0].fieldRow[0].text_ = getUserscriptBlock(
+              JSON.parse(
+                this.inputList[0].fieldRow[0].text_.replace(
+                  /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                  "",
+                ),
+              ).id,
+            ).displayName;
+          } catch {
+            return ogMethod(optBubble);
+          }
+          const result = ogMethod(optBubble);
+          this.inputList[0].fieldRow[0].textElement_.innerHTML =
+            this.inputList[0].fieldRow[0].text_.replace(" ", "\u00A0");
+          const textWidth =
+            this.inputList[0].fieldRow[0].textElement_.getBBox().width;
+          this.inputList[0].fieldRow[0].textElement_.setAttribute(
+            "x",
+            textWidth / 2,
+          );
+          this.svgPath_.setAttribute(
+            "d",
+            this.svgPath_
+              .getAttribute("d")
+              .replace(
+                new RegExp(`(?<=m ${this.height / 2},0 H )\\d*\.?\\d+`),
+                textWidth +
+                  this.inputList[0].fieldRow[0].textElement_.transform
+                    .baseVal[0].matrix.e *
+                    2 -
+                  this.height / 2,
+              ),
+          );
+          this.width =
+            textWidth +
+            this.inputList[0].fieldRow[0].textElement_.transform.baseVal[0]
+              .matrix.e *
+              2;
+          this.inputList[0].fieldRow[0].text_ = ogText;
+          return result;
+        } else {
+          return ogMethod(optBubble);
+        }
+      },
+    );
+    vm.runtime.getBlocksXML = overrideFunction(
+      vm.runtime.getBlocksXML,
+      (ogMethod, target) => {
+        const result = ogMethod(target);
+        let workspace;
+        if (ScratchBlocks.registry) {
+          workspace = ScratchBlocks.common.getMainWorkspace();
+        }
+        result.unshift({
+          id: "userscript-stage-size-changer",
+          xml:
+            "<category" +
+            ' name="StageSC"' +
+            ` ${ScratchBlocks.registry ? "toolboxitemid" : "id"}="userscript-stage-size-changer"` +
+            ` colour="${getUsCategoryColor().primary}"` +
+            ` secondaryColour="${getUsCategoryColor().secondary}"` +
+            ` iconURI="${resources.icon}"` +
+            `>${generateUsBlocksXML()}</category>`,
+        });
+        return result;
+      },
+    );
+    if (!ScratchBlocks.registry) {
+      ScratchBlocks.Procedures.getDefineBlock = overrideFunction(
+        ScratchBlocks.Procedures.getDefineBlock,
+        (ogMethod, procedureCode, workspace) => {
+          const result = ogMethod(procedureCode, workspace);
+          if (result) {
+            return result;
+          }
+          const block = getUserscriptBlock(procedureCode);
+          if (block) {
+            return {
+              workspace,
+              getInput() {
+                return {
+                  connection: {
+                    targetBlock() {
+                      return null;
+                    },
+                  },
+                };
+              },
+            };
+          }
+          return result;
+        },
+      );
+    }
+    const newCreateAllInputs = (ogMethod) =>
+      function (...args) {
+        const blockData = getUserscriptBlock(this.procCode_);
+        if (blockData) {
+          const ogProcedureCode = this.procCode_;
+          this.procCode_ = blockData.displayName;
+          const ret = ogMethod.call(this, ...args);
+          this.procCode_ = ogProcedureCode;
+          return ret;
+        }
+        return ogMethod.call(this, ...args);
+      };
+    if (ScratchBlocks.registry) {
+      ScratchBlocks.Block.prototype.doInit_ = overrideFunction(
+        ScratchBlocks.Block.prototype.doInit_,
+        (ogMethod, ...args) => {
+          const result = ogMethod(...args);
+          if (this.type == "procedures_call") {
+            const ogCreateAllInputs = this.createAllInputs_;
+            this.createAllInputs_ = newCreateAllInputs(ogCreateAllInputs);
+            return result;
+          }
+        },
+      );
+      ScratchBlocks.Blocks.argument_reporter_string_number.init =
+        overrideFunction(
+          ScratchBlocks.Blocks.argument_reporter_string_number.init,
+          (ogMethod) => {
+            ogMethod();
+            queueMicrotask(() => {
+              if (
+                !this.getFieldValue("VALUE").startsWith(
+                  "\u200B\u200BuserscriptStageSizeChanger\u200B\u200B",
+                ) ||
+                this.dragStrategy instanceof
+                  ScratchBlocks.dragging.BlockDragStrategy ||
+                this.isInFlyout
+              ) {
+                return;
+              }
+              let block;
+              try {
+                block = getUserscriptBlock(
+                  JSON.parse(
+                    this.getFieldValue("VALUE").replace(
+                      /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                      "",
+                    ),
+                  ).id,
+                );
+              } catch {
+                return;
+              }
+              if (block) {
+                this.setDragStrategy(
+                  new ScratchBlocks.dragging.BlockDragStrategy(this),
+                );
+                this.dragStrategy.block?.dispose();
+              }
+            });
+          },
+        );
+      ScratchBlocks.Blocks.argument_reporter_boolean.init = overrideFunction(
+        ScratchBlocks.Blocks.argument_reporter_boolean.init,
+        (ogMethod) => {
+          ogMethod();
+          queueMicrotask(() => {
+            if (
+              !this.getFieldValue("VALUE").startsWith(
+                "\u200B\u200BuserscriptStageSizeChanger\u200B\u200B",
+              ) ||
+              this.dragStrategy instanceof
+                ScratchBlocks.dragging.BlockDragStrategy ||
+              this.isInFlyout
+            ) {
+              return;
+            }
+            let block;
+            try {
+              block = getUserscriptBlock(
+                JSON.parse(
+                  this.getFieldValue("VALUE").replace(
+                    /^\u200B\u200BuserscriptStageSizeChanger\u200B\u200B/,
+                    "",
+                  ),
+                ).id,
+              );
+            } catch {
+              return;
+            }
+            if (block) {
+              this.setDragStrategy(
+                new ScratchBlocks.dragging.BlockDragStrategy(this),
+              );
+              this.dragStrategy.block?.dispose();
+            }
+          });
+        },
+      );
+    } else {
+      const ogCreateAllInputs =
+        ScratchBlocks.Blocks.procedures_call.createAllInputs_;
+      ScratchBlocks.Blocks.procedures_call.createAllInputs_ =
+        newCreateAllInputs(ogCreateAllInputs);
+    }
+    ScratchBlocks.Events.disable();
     const workspace = ScratchBlocks.getMainWorkspace();
-    if (isModernBlockly) {
+    ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(
+      ScratchBlocks.Xml.workspaceToDom(workspace),
+      workspace,
+    );
+    if (blocksComponent.getToolboxXML()) {
+      workspace.updateToolbox(blocksComponent.getToolboxXML());
+    }
+    if (ScratchBlocks.registry) {
       workspace.getToolbox().forceRerender();
     } else {
       workspace.getToolbox().refreshSelection();
       workspace.toolboxRefreshEnabled_ = true;
     }
+    ScratchBlocks.Events.enable();
+    console.log(
+      "%c %cToolbox patches applied",
+      `font-size: 1px; padding: 10px 10px; background: no-repeat url(${resources.icon}); margin-right: 0.25rem;`,
+      "",
+    );
   };
   let toolboxPatchesApplied = false;
   if (ScratchBlocks) {
     toolboxPatchesApplied = true;
     applyToolboxPatches();
   }
+  addUserscriptBlock(
+    '\u200B\u200Bhave "Stage Size Changer"?\u200B\u200B',
+    'have "Stage Size Changer"?',
+    [],
+    "boolean",
+    () => {
+      return true;
+    },
+    false,
+  );
+  addUserscriptBlock(
+    "\u200B\u200Bstage width\u200B\u200B",
+    "stage width",
+    [],
+    "reporter",
+    () => {
+      return vm.runtime.stageWidth;
+    },
+    false,
+  );
+  addUserscriptBlock(
+    "\u200B\u200Bstage height\u200B\u200B",
+    "stage height",
+    [],
+    "reporter",
+    () => {
+      return vm.runtime.stageHeight;
+    },
+    false,
+  );
+  addUserscriptBlock(
+    "\u200B\u200Bset stage size width:\u200B\u200B %n \u200B\u200Bheight:\u200B\u200B %n",
+    "set stage size width: %n height: %n",
+    ["width", "height"],
+    "command",
+    (args) => {
+      vm.runtime.setStageSize(args.width, args.height);
+    },
+    false,
+  );
 
   // First updates and element additions
   (await asyncQuerySelector('img[class^="stop-all_stop-all_"]')).after(
@@ -731,8 +1215,9 @@
     if (siteDifferences[location.host].pagesCheck.editor()) {
       stageWrapperState = await asyncGetStageWrapperState();
       stageSizeMode = stageWrapperState.props.stageSize;
-      ScratchBlocks = await getScratchBlocks();
-      Object.assign(instancesGroup, { ScratchBlocks });
+      blocksComponent = await getBlocksComponent();
+      ScratchBlocks = blocksComponent.ScratchBlocks;
+      Object.assign(instancesGroup, { blocksComponent, ScratchBlocks });
       if (!toolboxPatchesApplied) {
         toolboxPatchesApplied = true;
         applyToolboxPatches();
