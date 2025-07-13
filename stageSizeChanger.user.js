@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        stageSizeChanger
-// @version     1.0-alpha.8
+// @version     1.0-alpha.9
 // @author      Den4ik-12
 // @description Userscript for the Scratch website that allows you to resize the scene.
 // @match       https://scratch.mit.edu/projects/*
@@ -76,7 +76,7 @@
       stageButtonIcon: "stage-header_stage-button-icon_tUZn7",
       inFullscreenButton: {
         query:
-          'div[class^="stage-header_stage-menu-wrapper_"] > div[class^="stage-header_unselect-wrapper_"] > span[class^="button_outlined-button_"][role="button"]',
+          'div[class^="stage-header_stage-menu-wrapper_"] > div[class^="stage-header_unselect-wrapper_"] > span[class^="button_outlined-button_"][role="button"], div[class^="stage-header_embed-scratch-logo_"] > a',
         parentI: 1,
       },
       matchingPage: (x) => {
@@ -87,7 +87,10 @@
           return "player";
         } else if (new URL(x).pathname.split("/").includes("editor")) {
           return "editor";
-        } else if (new URL(x).pathname.split("/").includes("fullscreen")) {
+        } else if (
+          new URL(x).pathname.split("/").includes("fullscreen") ||
+          new URL(x).pathname.split("/").includes("embed")
+        ) {
           return "fullscreen";
         }
       },
@@ -96,7 +99,9 @@
           !location.pathname.split("/").includes("editor") &&
           !location.pathname.split("/").includes("fullscreen"),
         editor: () => location.pathname.split("/").includes("editor"),
-        fullscreen: () => location.pathname.split("/").includes("fullscreen"),
+        fullscreen: () =>
+          location.pathname.split("/").includes("fullscreen") ||
+          location.pathname.split("/").includes("embed"),
       },
       addListenersTo: [],
     },
@@ -152,6 +157,7 @@
         return overrider.call(this, ogFunction.bind(this), ...args);
       };
     },
+    defined = (x) => typeof x != "undefined" && x != null,
     hex2Hsl = (hex) => {
       let r = 0,
         g = 0,
@@ -238,9 +244,12 @@
       top: 0;
       left: 0;
     }
+    .preview .guiPlayer [class*="stage_question-wrapper"],
+    [class*="stage-wrapper_stage-wrapper"] [class*="stage_question-wrapper"] {
+      width: auto !important;
+    }
 
-    .preview .guiPlayer,
-    .preview .guiPlayer [class*="stage_question-wrapper"] {
+    .preview .guiPlayer {
       width: ${width + 2}px !important;
     }
     .preview .guiPlayer [class*="stage_stage_"]:not([class*="stage-wrapper_full-screen"] *),
@@ -254,9 +263,6 @@
       transform: scale(1) !important;
     }
 
-    [class*="stage-wrapper_stage-wrapper"] [class*="stage_question-wrapper"]:not([class*="stage-wrapper_full-screen"] *, .preview .guiPlayer *) {
-      width: ${width * stageSizeMode}px !important;
-    }
     [class*="stage-wrapper_stage-wrapper"] [class*="stage_stage"]:not([class*="stage-wrapper_full-screen"] *, [class*="stage-wrapper_stage-wrapper"] [class*="stage_stage-wrapper"], .preview .guiPlayer *),
     [class*="stage-wrapper_stage-wrapper"] [class*="monitor-list_monitor-list"]:not([class*="stage-wrapper_full-screen"] *, .preview .guiPlayer *),
     [class*="stage-wrapper_stage-wrapper"] [class*="stage_stage-bottom-wrapper"]:not([class*="stage-wrapper_full-screen"] *, .preview .guiPlayer *),
@@ -272,7 +278,6 @@
     body [class*="stage-wrapper_full-screen"] [class*="stage_stage"],
     body [class*="stage-wrapper_full-screen"] [class*="stage-header_stage-menu-wrapper"],
     body [class*="stage-wrapper_full-screen"] [class*="monitor-list_monitor-list"],
-    body [class*="stage-wrapper_full-screen"] [class*="stage_question-wrapper"],
     body [class*="stage-wrapper_full-screen"] canvas {
       width: min(calc((100vh - 44px) * ${width} / ${height}), 100vw) !important;
     }
@@ -332,6 +337,9 @@
     direction: "ltr",
   });
 
+  const spacer = document.createElement("div");
+  spacer.style.marginLeft = "auto";
+
   const openSettingsButton = new Object();
   openSettingsButton.container = document.createElement("div");
   openSettingsButton.container.className =
@@ -343,13 +351,10 @@
   openSettingsButton.button.addEventListener("click", () => {
     const width = prompt("Stage width", vm.runtime.stageWidth),
       height = prompt("Stage height", vm.runtime.stageHeight);
-    if (width == null || height == null) {
+    if (!defined(width) || !defined(height)) {
       return;
     }
-    if (
-      width.match(/^\d+$/gs).length == 1 &&
-      height.match(/^\d+$/gs).length == 1
-    ) {
+    if (/^\d+$/.test(width) && /^\d+$/.test(height)) {
       vm.runtime.setStageSize(width, height);
     }
   });
@@ -440,7 +445,7 @@
 
       const penIndexInDrawList = vm.renderer._layerGroups.pen.drawListOffset,
         penDrawableId = vm.renderer._drawList[penIndexInDrawList],
-        penSkinId = vm.renderer._allDrawables[penDrawableId]._skin._id;
+        penSkinId = vm.renderer._allDrawables[penDrawableId]?._skin?._id;
 
       vm.runtime.stageWidth = width;
       vm.runtime.stageHeight = height;
@@ -456,8 +461,9 @@
       window.dispatchEvent(new Event("resize"));
 
       if (
-        new vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer)
-          .drawPoint
+        defined(vm.renderer._allSkins[penSkinId]?.constructor) &&
+        defined(new vm.renderer._allSkins[penSkinId].constructor(0, vm.renderer)
+          .drawPoint)
       ) {
         const newPenSkin = new vm.renderer._allSkins[penSkinId].constructor(
           penSkinId,
@@ -483,6 +489,15 @@
     get: () => {
       return vm.runtime.stageHeight;
     },
+  });
+  vm.runtime.on("STAGE_SIZE_CHANGED", (width, height) => {
+    const params = new URLSearchParams(location.search);
+    if (width == 480 && height == 360) {
+      params.delete("StageSC_size");
+    } else {
+      params.set("StageSC_size", `${width}x${height}`);
+    }
+    history.replaceState("", "", `?${params.toString()}`);
   });
 
   // Patches: Resize
@@ -512,8 +527,8 @@
   });
   vm.deserializeProject = overrideFunction(
     vm.deserializeProject,
-    (ogMethod, ...args) => {
-      const result = ogMethod(...args);
+    async (ogMethod, json, zip) => {
+      const result = await ogMethod(json, zip);
       for (const monitor of vm.runtime._monitorState.valueSeq()) {
         vm.runtime.requestUpdateMonitor(
           new Map([
@@ -524,6 +539,22 @@
         );
       }
       vm.runtime.emit("MONITORS_UPDATE", vm.runtime._monitorState);
+      const stageComments = json.targets.find((x) => x.isStage).comments;
+      if (defined(stageComments)) {
+        const twConfigComment = Object.values(stageComments).find((x) => x.text.includes("// _twconfig_"));
+        if (defined(twConfigComment)) {
+          let twConfig;
+          try {
+            twConfig = JSON.parse(twConfigComment.text.match(/\{.*\}(?=( \/\/ _twconfig_$))/g)[0]);
+          } catch {}
+          if (defined(twConfig?.width) || defined(twConfig?.height)) {
+            vm.runtime.setStageSize(
+              twConfig?.width ? parseInt(twConfig.width) : vm.runtime.stageWidth,
+              twConfig?.height ? parseInt(twConfig.height) : vm.runtime.stageHeight,
+            );
+          }
+        }
+      }
       return result;
     },
   );
@@ -562,7 +593,7 @@
       }
       const monitorFromClone = monitorsStateClone.get(monitor.get("id"));
       if (
-        monitorFromClone &&
+        defined(monitorFromClone) &&
         monitorFromClone.get("visible") != monitor.get("visible") &&
         (monitorFromClone.get("x") != monitor.get("x") ||
           monitorFromClone.get("y") != monitor.get("y"))
@@ -586,7 +617,9 @@
     getUsCategoryColor = () => {
       const themeConvert = (hex, type) => {
         const userscriptHsl = hex2Hsl(hex),
-          newMotionHsl = hex2Hsl(ScratchBlocks.Colours.motion[type]),
+          newMotionHsl = hex2Hsl(type == "quaternary"
+            ? ScratchBlocks.Colours.motion.quaternary ?? ScratchBlocks.Colours.motion.tertiary
+            : ScratchBlocks.Colours.motion[type]),
           oldMotionHsl = hex2Hsl(
             {
               primary: "#4c97ff",
@@ -695,7 +728,7 @@
       if (args.length !== procCodeArgs.length) {
         return;
       }
-      if (displayName) {
+      if (defined(displayName)) {
         displayName = fixDisplayName(displayName);
         const displayNameArgs = parseArguments(displayName);
         if (JSON.stringify(procCodeArgs) != JSON.stringify(displayNameArgs)) {
@@ -727,7 +760,7 @@
     vm.runtime.sequencer.stepToProcedure,
     (ogMethod, thread, procedureCode) => {
       const blockData = getUserscriptBlock(procedureCode);
-      if (blockData) {
+      if (defined(blockData)) {
         const stackFrame = thread.peekStackFrame();
         blockData.handler(stackFrame.params, thread);
         return;
@@ -755,7 +788,7 @@
           } catch {}
         }
         const blockData = getUserscriptBlock(id);
-        return blockData
+        return defined(blockData)
           ? blockData.handler(args, util)
           : ogMethod?.(args, util);
       }
@@ -782,7 +815,7 @@
           } catch {}
         }
         const blockData = getUserscriptBlock(id);
-        return blockData
+        return defined(blockData)
           ? blockData.handler(args, util)
           : ogMethod?.(args, util);
       }
@@ -790,7 +823,7 @@
     },
   );
   const applyToolboxPatches = () => {
-    if (ScratchBlocks.registry) {
+    if (defined(ScratchBlocks.registry)) {
       ScratchBlocks.BlockSvg.prototype.applyColour = overrideFunction(
         ScratchBlocks.BlockSvg.prototype.applyColour,
         function (ogMethod, ...args) {
@@ -818,7 +851,7 @@
                   ? this.procCode_ && getUserscriptBlock(this.procCode_)
                   : getUserscriptBlock(id),
               color = getUsCategoryColor();
-            if (block) {
+            if (defined(block)) {
               this.style = {
                 ...this.style,
                 colourPrimary: color.primary,
@@ -861,7 +894,7 @@
                   ? this.procCode_ && getUserscriptBlock(this.procCode_)
                   : getUserscriptBlock(id),
               color = getUsCategoryColor();
-            if (block) {
+            if (defined(block)) {
               this.colour_ = color.primary;
               this.colourSecondary_ = color.secondary;
               this.colourTertiary_ = color.tertiary;
@@ -935,7 +968,7 @@
       (ogMethod, target) => {
         const result = ogMethod(target);
         let workspace;
-        if (ScratchBlocks.registry) {
+        if (defined(ScratchBlocks.registry)) {
           workspace = ScratchBlocks.common.getMainWorkspace();
         }
         result.unshift({
@@ -952,7 +985,7 @@
         return result;
       },
     );
-    if (!ScratchBlocks.registry) {
+    if (!defined(ScratchBlocks.registry)) {
       ScratchBlocks.Procedures.getDefineBlock = overrideFunction(
         ScratchBlocks.Procedures.getDefineBlock,
         (ogMethod, procedureCode, workspace) => {
@@ -982,7 +1015,7 @@
     const newCreateAllInputs = (ogMethod) =>
       function (...args) {
         const blockData = getUserscriptBlock(this.procCode_);
-        if (blockData) {
+        if (defined(blockData)) {
           const ogProcedureCode = this.procCode_;
           this.procCode_ = blockData.displayName;
           const ret = ogMethod.call(this, ...args);
@@ -991,10 +1024,10 @@
         }
         return ogMethod.call(this, ...args);
       };
-    if (ScratchBlocks.registry) {
+    if (defined(ScratchBlocks.registry)) {
       ScratchBlocks.Block.prototype.doInit_ = overrideFunction(
         ScratchBlocks.Block.prototype.doInit_,
-        (ogMethod, ...args) => {
+        function (ogMethod, ...args) {
           const result = ogMethod(...args);
           if (this.type == "procedures_call") {
             const ogCreateAllInputs = this.createAllInputs_;
@@ -1032,7 +1065,7 @@
               } catch {
                 return;
               }
-              if (block) {
+              if (defined(block)) {
                 this.setDragStrategy(
                   new ScratchBlocks.dragging.BlockDragStrategy(this),
                 );
@@ -1069,7 +1102,7 @@
             } catch {
               return;
             }
-            if (block) {
+            if (defined(block)) {
               this.setDragStrategy(
                 new ScratchBlocks.dragging.BlockDragStrategy(this),
               );
@@ -1090,10 +1123,10 @@
       ScratchBlocks.Xml.workspaceToDom(workspace),
       workspace,
     );
-    if (blocksComponent.getToolboxXML()) {
+    if (defined(blocksComponent.getToolboxXML())) {
       workspace.updateToolbox(blocksComponent.getToolboxXML());
     }
-    if (ScratchBlocks.registry) {
+    if (defined(ScratchBlocks.registry)) {
       workspace.getToolbox().forceRerender();
     } else {
       workspace.getToolbox().refreshSelection();
@@ -1107,7 +1140,7 @@
     );
   };
   let toolboxPatchesApplied = false;
-  if (ScratchBlocks) {
+  if (defined(ScratchBlocks)) {
     toolboxPatchesApplied = true;
     applyToolboxPatches();
   }
@@ -1153,6 +1186,9 @@
   );
 
   // First updates and element additions
+  (await asyncQuerySelector('div[class^="controls_controls-container_"]')).after(
+    spacer,
+  );
   (await asyncQuerySelector('img[class^="stop-all_stop-all_"]')).after(
     mousePosLabel,
   );
@@ -1184,6 +1220,12 @@
     stageSizeMode,
   );
 
+  // Search parameter "StageSC_size"
+  if (/\d+x\d+/.test((new URL(location.href)).searchParams.get("StageSC_size"))) {
+    const param = (new URL(location.href)).searchParams.get("StageSC_size");
+    vm.runtime.setStageSize(...param.match(/\d+/g).map((x) => parseInt(x)));
+  }
+
   // Navigation
   const funcOnClick = {
     player: async () => {
@@ -1212,6 +1254,15 @@
       });
     });
     clearInterval(intervalId);
+
+    /*const params = new URLSearchParams(location.search);
+    if (vm.runtime.stageWidth == 480 && vm.runtime.stageHeight == 360) {
+      params.delete("StageSC_size");
+    } else {
+      params.set("StageSC_size", `${vm.runtime.stageWidth}x${vm.runtime.stageHeight}`);
+    }
+    history.replaceState("", "", `?${params.toString()}`);*/
+
     if (siteDifferences[location.host].pagesCheck.editor()) {
       stageWrapperState = await asyncGetStageWrapperState();
       stageSizeMode = stageWrapperState.props.stageSize;
@@ -1228,6 +1279,9 @@
         ? monitorsStateClone.map((x) => x)
         : vm.runtime._monitorState;
 
+    (await asyncQuerySelector('div[class^="controls_controls-container_"]')).after(
+      spacer,
+    );
     (await asyncQuerySelector('img[class^="stop-all_stop-all_"]')).after(
       mousePosLabel,
     );
