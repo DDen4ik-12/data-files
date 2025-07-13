@@ -30,6 +30,7 @@ The userscript adds:
 * VM patches related to adding the ability to resize the stage
 * A button in the stage controls to resize the stage
 * A label in the stage controls that shows the position of the mouse cursor on the stage
+* Resizing the stage according to \_twconfig\_
 * New category "StageSC" ![StageSC category](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerCategory.png) and blocks:
 
 ![StageSC blocks](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/readmeAssets/stageSizeChangerBlocks.png)
