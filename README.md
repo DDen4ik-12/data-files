@@ -1,3 +1,6 @@
+> [!NOTE]
+> "Stage Size Changer" userscript migrated to [DDen4ik-12/Stage-Size-Changer repository](https://github.com/DDen4ik-12/Stage-Size-Changer)
+
 <hr>
 
 # Scratch Follow Viewports Fix
