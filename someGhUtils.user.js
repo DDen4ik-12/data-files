@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Some GitHub Utils
-// @version     1.0
+// @version     1.1
 // @author      Den4ik-12
 // @include     https://github.com/*
 // @grant       GM_setValue
@@ -9,7 +9,7 @@
 // @run-at      document-start
 // ==/UserScript==
 
-(() => {
+(async () => {
   // Constants
   const commitDialogClassPart = "WebCommitDialog-module__WebCommitDialogDialog",
     buttonQuery = 'button[class*="prc-Button-ButtonBase"]',
@@ -66,7 +66,7 @@
 
     return button;
   };
-  const createButtonGroup = (classes, filterFn, commitInput, setCommit, file) => {
+  const createButtonGroup = (classes, isPullRequest, commitInput, setCommit, optInfo) => {
     const buttonGroup = Object.assign(document.createElement("div"), {
       className: usButtonGroupClass,
     });
@@ -82,36 +82,81 @@
           let vars = [];
           for (let i = 0; i < varsCount; i++) {
             const varProps = {};
-            varProps.type = prompt(`New template - Var #${i + 1}/${varsCount}: Type (available: text, file, emoji, counter)`);
-            switch (varProps.type) {
-              case "text": {
-                varProps.text = prompt(`New template - Var #${i + 1}/${varsCount} (text): Text`);
-                break;
-              }
-            }
+            varProps.type = prompt(`New template - Var #${i + 1}/${varsCount}: Type (available: ${Object.keys(varTypes).join(", ")})`);
+            varTypes[varProps.type].onCreateVar?.(`New template - Var #${i + 1}/${varsCount}`, varProps);
             vars.push(varProps);
           }
-          const newTemplate = new CommitTemplate({ emoji, name, msg, vars });
+          const newTemplate = new CommitTemplate({ isPullRequest, emoji, name, msg, vars });
           templates.push(newTemplate);
-          newButton.before(newTemplate.createButton(classes, commitInput, setCommit, file));
+          newButton.before(newTemplate.createButton(classes, commitInput, setCommit, optInfo));
         },
       },
       [document.createTextNode("+")]
     );
     buttonGroup.append(
       ...templates
-        .filter(filterFn)
+        .filter((template) => template.isPullRequest == isPullRequest)
         .map((template) =>
-          template.createButton(classes, commitInput, setCommit, file),
+          template.createButton(classes, commitInput, setCommit, optInfo),
         ),
       newButton,
     );
     commitInput.parentNode.before(buttonGroup);
   };
 
-  // Templates
+  // Templates. Variables types
+  const varTypes = {
+    text: {
+      fill: ({ var_ }) => var_.text,
+      onCreateVar: (titleStart, varProps) => {
+        varProps.text = prompt(`${titleStart} (text): Text`) || "";
+      },
+    },
+    file: {
+      fill: ({ template, file }) => template.isPullRequest ? "" : file,
+    },
+    prNum: {
+      fill: ({ template, prNum }) => template.isPullRequest ? prNum : "",
+    },
+    prHead: {
+      fill: ({ template, prHead }) => template.isPullRequest ? prHead : "",
+    },
+    emoji: {
+      fill: ({ template }) => template.emoji,
+    },
+    counter: {
+      fill: ({ template }) => String(template.$counter || 0),
+      onConstruct: (template, optArgs) => {
+        if (!template.isCore) template.$counter = parseInt(optArgs?.$counter) || 0;
+      },
+      onSerialize: (template, serialized) => {
+        if (template.$counter) serialized.$counter = template.$counter;
+      },
+      subbutton: (varSubbuttons, template) => {
+        varSubbuttons.counter = Object.assign(document.createElement("span"), {
+          className: usSubbuttonClass,
+          textContent: String(template.$counter || 0),
+          title: "Reset counter on this template",
+          onclick: (event) => {
+            event.stopPropagation();
+            template.$counter = 0;
+            varSubbuttons.counter.textContent = "0";
+            saveTemplates();
+          },
+        });
+      },
+      onClick: (varSubbuttons, template) => {
+        template.$counter++;
+        varSubbuttons.counter.textContent = String(template.$counter || 0);
+      },
+    },
+  };
+  const saveTemplates = () => GM_setValue(
+    "templates",
+    templates.reduce((acc, template) => template.isCore ? acc : [...acc, template.serialize()], []),
+  );
   class CommitTemplate {
-    constructor({ isCore, isPullRequest, counter, emoji, name, msg, vars }) {
+    constructor({ isCore, isPullRequest, emoji, name, msg, vars, optArgs }) {
       this.isCore = !!isCore;
       this.isPullRequest = !!isPullRequest;
 
@@ -121,14 +166,14 @@
       this.msg = String(msg);
       this.vars = Array.isArray(vars) ? vars : [];
 
-      if (!this.isCore && this.vars.some((var_) => var_.type == "counter")) {
-          this.counter = parseInt(counter) || 0;
-      }
+      Object.keys(varTypes).forEach((type) => {
+        if (this.vars.some((var_) => var_.type == type)) varTypes[type].onConstruct?.(this, optArgs);
+      });
     }
-    static deserialize (value) {
+    static deserialize(value) {
       return new CommitTemplate({ ...value, isCore: false });
     }
-    serialize () {
+    serialize() {
       const serialized = {
         isPullRequest: this.isPullRequest,
         emoji: this.emoji,
@@ -136,50 +181,27 @@
         msg: this.msg,
         vars: this.vars,
       };
-      if (this.counter) serialized.counter = this.counter;
+      Object.keys(varTypes).forEach((type) => {
+        if (this.vars.some((var_) => var_.type == type)) varTypes[type].onSerialize?.(this, serialized);
+      });
       return serialized;
     }
     get nameWithEmoji() {
       if (this.emoji) return `${this.emoji} ${this.name}`;
       return this.name;
     }
-    filledMsg(file) {
+    filledMsg(optInfo) {
       let i = -1;
       return this.msg.replaceAll("$", () => {
         i++;
-        switch (this.vars[i].type) {
-          case "text":
-            return this.vars[i].text;
-          case "file":
-            return this.isPullRequest ? "" : file;
-          case "emoji":
-            return this.emoji;
-          case "counter":
-            return String(this.counter || 0);
-          default:
-            return "";
-        }
+        return varTypes[this.vars[i].type].fill?.({
+          _var: this.vars[i],
+          template: this,
+          ...optInfo,
+        }) || "";
       });
     }
-    createButton(classes, commitInput, setCommit, file) {
-      let counterSubbutton;
-      if ("counter" in this) {
-        counterSubbutton = Object.assign(document.createElement("span"), {
-          className: usSubbuttonClass,
-          textContent: String(this.counter || 0),
-          title: "Reset counter on this template",
-          onclick: (event) => {
-            event.stopPropagation();
-            this.counter = 0;
-            counterSubbutton.textContent = "0";
-            GM_setValue(
-              "templates",
-              templates.reduce((acc, template) => template.isCore ? acc : [...acc, template.serialize()], []),
-            );
-          },
-        });
-      }
-
+    createButton(classes, commitInput, setCommit, optInfo) {
       let removeSubbutton;
       if (!this.isCore) {
         removeSubbutton = Object.assign(document.createElement("span"), {
@@ -190,18 +212,17 @@
             event.stopPropagation();
             templates.splice(templates.indexOf(this), 1);
             button.outerHTML = "";
-            GM_setValue(
-              "templates",
-              templates.reduce((acc, template) => template.isCore ? acc : [...acc, template.serialize()], []),
-            );
+            saveTemplates();
           },
         });
       }
 
-      const buttonContent = [document.createTextNode(this.nameWithEmoji)];
-      if (counterSubbutton) {
-        buttonContent.push(counterSubbutton);
-      }
+      const varSubbuttons = {};
+      Object.keys(varTypes).forEach((type) => {
+        if (this.vars.some((var_) => var_.type == type)) varTypes[type].subbutton?.(varSubbuttons, this);
+      });
+
+      const buttonContent = [document.createTextNode(this.nameWithEmoji), ...Object.values(varSubbuttons)];
       if (removeSubbutton) {
         buttonContent.push(removeSubbutton);
       }
@@ -210,16 +231,12 @@
         null,
         {
           onclick: () => {
-            if ("counter" in this) {
-              this.counter++;
-              counterSubbutton.textContent = String(this.counter || 0);
-            }
-            setCommit(this.filledMsg(file));
+            Object.keys(varTypes).forEach((type) => {
+              if (this.vars.some((var_) => var_.type == type)) varTypes[type].onClick?.(varSubbuttons, this);
+            });
+            setCommit(this.filledMsg(optInfo));
             commitInput.focus();
-            GM_setValue(
-              "templates",
-              templates.reduce((acc, template) => template.isCore ? acc : [...acc, template.serialize()], []),
-            );
+            saveTemplates();
           },
         },
         buttonContent,
@@ -228,6 +245,14 @@
     }
   }
   const templates = [
+    // File update core templates
+    new CommitTemplate({
+      isCore: true,
+      emoji: "⬆",
+      name: "Update",
+      msg: "$: $ Update",
+      vars: [{ type: "file" }, { type: "emoji" }],
+    }),
     new CommitTemplate({
       isCore: true,
       emoji: "🐛",
@@ -265,11 +290,28 @@
     }),
     new CommitTemplate({
       isCore: true,
+      emoji: "📄",
+      name: "Docs",
+      msg: "$: $ docs - ",
+      vars: [{ type: "file" }, { type: "emoji" }],
+    }),
+    new CommitTemplate({
+      isCore: true,
       emoji: "↩",
       name: "Revert",
       msg: "$: $ Revert changes",
       vars: [{ type: "file" }, { type: "emoji" }],
     }),
+    // Pull request core templates
+    new CommitTemplate({
+      isCore: true,
+      isPullRequest: true,
+      emoji: "⤴",
+      name: "Pull request",
+      msg: "$ Merge PR #$ from $",
+      vars: [{ type: "emoji" }, { type: "prNum" }, { type: "prHead" }],
+    }),
+    // Non-core templates
     ...GM_getValue("templates", []).map((value) => CommitTemplate.deserialize(value)),
   ];
 
@@ -295,30 +337,28 @@
     if (isPullRequest) {
       if (
         props.pullRequest.headRefName.startsWith("dependabot") &&
-        /^Bump \S+ from `[a-z0-9]{7}` to `[a-z0-9]{7}`$/.test(
+        /[Bb]ump \S+ from `[a-z0-9]{7}` to `[a-z0-9]{7}`$/.test(
           props.mergeRequirements.commitMessageBody,
         )
       ) {
         const [_, module, from, to] =
           props.mergeRequirements.commitMessageBody.match(
-            /^Bump (\S+) from `([a-z0-9]{7})` to `([a-z0-9]{7})`$/,
+            /[Bb]ump (\S+) from `([a-z0-9]{7})` to `([a-z0-9]{7})`$/,
           );
         return `${module}: 📦 Bump from ${from} to ${to}`;
       }
-      const pullRequestId = props.mergeRequirements.commitMessageHeadline.match(
+      const prNum = props.mergeRequirements.commitMessageHeadline.match(
         /^Merge pull request #(\d+) from .+$/,
       )[1];
-      return `⤴ Merge PR #${pullRequestId} from ${props.pullRequest.headRepository.ownerLogin}/${props.pullRequest.headRefName}`;
+      return `⤴ Merge PR #${prNum} from ${props.pullRequest.headRepository.ownerLogin}/${props.pullRequest.headRefName}`;
     } else {
       if (props.isDelete) {
         const fileName = props.placeholderMessage.match(/^Delete (.+)$/)[1];
         return `${fileName}: 🗑 Delete`;
       }
       if (props.isNewFile) {
-        const fileName =
-          props.oldPath.length == 0
-            ? props.fileName
-            : props.fileName.substring(props.oldPath.length + 1);
+        const pathArr = props.fileName.split("/");
+        const fileName = pathArr[pathArr.length - 1];
         return `${fileName}: ➕ Create`;
       }
       if (props.contentChanged) {
@@ -356,15 +396,20 @@
         const buttonLabelClass =
           target.querySelector(buttonLabelQuery).className;
         if (!commitDialogNodeProps.isDelete) {
+          const pathArr = commitDialogNodeProps.fileName.split("/");
           createButtonGroup(
             { buttonClass, buttonContentClass, buttonLabelClass },
-            (template) => !template.isPullRequest,
+            false,
             commitInput,
             commitDialogNodeProps.setMessage,
-            renamingVisual(
-              commitDialogNodeProps.oldPath,
-              commitDialogNodeProps.fileName,
-            ),
+            {
+              file: commitDialogNodeProps.isNewFile
+                ? pathArr[pathArr.length - 1]
+                : renamingVisual(
+                    commitDialogNodeProps.oldPath,
+                    commitDialogNodeProps.fileName,
+                  ),
+            },
           );
         }
       } else if (
@@ -382,6 +427,10 @@
           fiberUtils.of(commitInput),
           new Set(["mergeRequirements"]),
         ).memoizedProps;
+        const rwNodeProps = fiberUtils.parentWithProps(
+          fiberUtils.of(commitInput),
+          new Set(["match"]),
+        ).memoizedProps;
 
         const newCommitName = defaultCommitName(true, mergeBoxNodeProps);
         commitInputNodeProps.onChange({
@@ -396,11 +445,18 @@
           target.querySelector(buttonLabelQuery).className;
         createButtonGroup(
           { buttonClass, buttonContentClass, buttonLabelClass },
-          (template) => template.isPullRequest,
+          true,
           commitInput,
-          (newCommitName) => commitInputNodeProps.onChange({
-            currentTarget: { value: () => newCommitName },
-          }),
+          (newCommitName) => {
+            commitInputNodeProps.onChange({
+              currentTarget: { value: () => newCommitName },
+            });
+            commitInput.value = newCommitName;
+          },
+          {
+            prNum: rwNodeProps.match.params.pr_number,
+            prHead: `${mergeBoxNodeProps.pullRequest.headRepository.ownerLogin}/${mergeBoxNodeProps.pullRequest.headRefName}`,
+          },
         );
       } else if (
         !target[usSymbol] &&
@@ -426,6 +482,7 @@
         const names = target.querySelector("h1.vcard-names");
         const idSpan = Object.assign(document.createElement("span"), {
           className: "vcard-username d-block",
+          title: "Copy ID to clipboard",
           textContent: `ID: ${userId}`,
           onclick: () => navigator.clipboard.writeText(userId),
         });
@@ -449,7 +506,7 @@
     border: var(--borderWidth-thin, .0625rem) solid var(--borderColor-default);
     border-radius: var(--borderRadius-medium);
     width: 100%;
-    max-height: 125px;
+    max-height: 130px;
     padding: var(--base-size-8);
     margin-block: var(--base-size-4, .25rem);
     overflow-y: auto;
