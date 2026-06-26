@@ -1,0 +1,202 @@
+{
+    "dirContent": [
+        {
+            "nameMatch": [
+                "^\\.github($|/)",
+                "i"
+            ],
+            "contentType": "directory",
+            "icon": "github"
+        },
+        {
+            "nameMatch": [
+                "(^package(-lock)?\\.json|\\.npm(rc|ignore))$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "npm",
+            "color": "#cb3837"
+        },
+        {
+            "nameMatch": [
+                "^webpack\\.config\\.js$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "webpack",
+            "color": "#8dd6f9"
+        },
+        {
+            "nameMatch": [
+                "\\.git(ignore|modules|attributes)$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "git",
+            "color": "#f03c2e"
+        },
+        {
+            "nameMatch": [
+                "(^babel\\.config\\.cjs|\\.babelrc)$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "babel",
+            "color": "#f9dc3e"
+        },
+        {
+            "nameMatch": [
+                "(^eslint\\.config\\.js|\\.eslint(ignore|rc\\.c?js))$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "eslint",
+            "color": "#4b32c3"
+        },
+        {
+            "nameMatch": [
+                "^vite\\.config\\.js$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "vite",
+            "color": "#9135ff"
+        },
+        {
+            "nameMatch": [
+                "^deno\\.json$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "deno",
+            "color": "#000000"
+        },
+        {
+            "nameMatch": [
+                "\\.md$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "markdown",
+            "color": "#000000"
+        },
+        {
+            "nameMatch": [
+                "\\.svg$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "svg",
+            "color": "#ffb13b"
+        },
+        {
+            "nameMatch": [
+                "\\.mp(3|4)$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "mpv",
+            "color": "#691f69"
+        },
+        {
+            "nameMatch": [
+                "\\.html?$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "html5",
+            "color": "#e34f26"
+        },
+        {
+            "nameMatch": [
+                "\\.css$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "css",
+            "color": "#663399"
+        },
+        {
+            "nameMatch": [
+                "\\.s(a|c)ss$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "sass",
+            "color": "#cc6699"
+        },
+        {
+            "nameMatch": [
+                "\\.(user|meta)\\.js$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "tampermonkey",
+            "color": "#00485b"
+        },
+        {
+            "nameMatch": [
+                "\\.(m|c)?js$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "javascript",
+            "color": "#f7df1e"
+        },
+        {
+            "nameMatch": [
+                "\\.ts$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "typescript",
+            "color": "#3178c6"
+        },
+        {
+            "nameMatch": [
+                "\\.(j|t)sx$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "react",
+            "color": "#61dafb"
+        },
+        {
+            "nameMatch": [
+                "\\.ejs$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "ejs",
+            "color": "#b4ca65"
+        },
+        {
+            "nameMatch": [
+                "\\.json5?$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "json",
+            "color": "#000000"
+        },
+        {
+            "nameMatch": [
+                "\\.py$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "python",
+            "color": "#3776ab"
+        },
+        {
+            "nameMatch": [
+                "\\.(c|h)pp$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "cplusplus",
+            "color": "#00599c"
+        }
+    ],
+    "templates": []
+}
