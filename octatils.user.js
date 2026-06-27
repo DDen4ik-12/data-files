@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name        Some GitHub Utils
-// @version     1.2
+// @name        OctaTils
+// @version     1.2.1
 // @author      Den4ik-12
 // @include     https://github.com/*
 // @connect     simpleicons.org
@@ -13,6 +13,8 @@
 // @require     https://cdn.jsdelivr.net/npm/htm
 // @namespace   http://tampermonkey.net/
 // @run-at      document-start
+// @downloadURL https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/octatils.user.js
+// @updateURL   https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/octatils.user.js
 // ==/UserScript==
 
 (async () => {
@@ -26,13 +28,13 @@
     buttonContentQuery = 'span[class*="prc-Button-ButtonContent"]',
     buttonLabelQuery = 'span[class*="prc-Button-Label"]',
     usElClasses = {
-      buttonGroup: "us-some-gh-utils_button-group",
-      subbutton: "us-some-gh-utils_subbutton",
-      userIdLabel: "us-some-gh-utils_user-id-label",
+      buttonGroup: "us-octatils_button-group",
+      subbutton: "us-octatils_subbutton",
+      userIdLabel: "us-octatils_user-id-label",
     },
     usSymbols = {
-      renderedList: Symbol("someGhUtils.renderedList"),
-      renderedList1stChild: Symbol("someGhUtils.renderedList1stChild"),
+      renderedList: Symbol("octatils.renderedList"),
+      renderedList1stChild: Symbol("octatils.renderedList1stChild"),
     };
 
   // JS & React utilites
@@ -654,12 +656,12 @@
         fiberUtils.of(commitInput),
         new Set(["setMessage"]),
       ).memoizedProps;
-      const pathArr = commitDialogNodeProps.fileName.split("/");
 
       const newCommitName = defaultCommitName(false, commitDialogNodeProps);
       commitDialogNodeProps.setMessage(newCommitName);
 
       if (commitDialogNodeProps.isDelete) return { isDelete: true };
+      const pathArr = commitDialogNodeProps.fileName.split("/");
       return {
         isDelete: false,
         isPullRequest: false,
