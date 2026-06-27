@@ -21,13 +21,13 @@
 <hr>
 
 # OctaTils
-### [📄 File in GitHub](someGhUtils.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/someGhUtils.user.js)[^1]
+### [📄 File in GitHub](octatils.user.js) | [🟩 Download userscript](https://raw.githubusercontent.com/DDen4ik-12/data-files/refs/heads/main/octatils.user.js)[^1]
 
 <hr>
 
 <sub>*Octagon + Utils = OctaTils...*</sub>
 
-"OctaTils" is a userscript for the GitHub website that add some utils and tools: commit and pull request message templates, ID of user in profile, custom icons for elements in directory view
+"OctaTils" is a userscript for the GitHub website that add some utils and tools: commit and pull request message templates, ID of user in profile, customization of element icons in the directory view
 
 [^1]: Before installing userscript, do not forget to install the script manager (for example [Tampermonkey](https://www.tampermonkey.net/))
 [^2]: Scratch is a project of the Scratch Foundation. It is available for free at https://scratch.org/
