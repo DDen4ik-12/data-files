@@ -27,7 +27,10 @@
 
 <sub>*Octagon + Utils = OctaTils...*</sub>
 
-"OctaTils" is a userscript for the GitHub website that add some utils and tools: commit and pull request message templates, ID of user in profile, customization of element icons in the directory view
+"OctaTils" is a userscript for the GitHub website that add some utils and tools:
+* Commit and pull request message templates
+* User ID label in profile
+* Customization of element icons in the directory view
 
 [^1]: Before installing userscript, do not forget to install the script manager (for example [Tampermonkey](https://www.tampermonkey.net/))
 [^2]: Scratch is a project of the Scratch Foundation. It is available for free at https://scratch.org/
