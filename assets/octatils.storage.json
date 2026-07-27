@@ -10,6 +10,14 @@
         },
         {
             "nameMatch": [
+                "^\\.tx($|/)",
+                "i"
+            ],
+            "contentType": "directory",
+            "icon": "transifex"
+        },
+        {
+            "nameMatch": [
                 "(^package(-lock)?\\.json|\\.npm(rc|ignore))$",
                 "i"
             ],
@@ -46,7 +54,7 @@
         },
         {
             "nameMatch": [
-                "(^eslint\\.config\\.js|\\.eslint(ignore|rc\\.c?js))$",
+                "(^eslint\\.config\\.js|\\.eslint(ignore|rc)(\\.c?js)?)$",
                 "i"
             ],
             "contentType": "file",
@@ -70,6 +78,33 @@
             "contentType": "file",
             "icon": "deno",
             "color": "#000000"
+        },
+        {
+            "nameMatch": [
+                "\\.nvmrc$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "nvm",
+            "color": "#f4dd4b"
+        },
+        {
+            "nameMatch": [
+                "\\.sh$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "gnubash",
+            "color": "#4eaa25"
+        },
+        {
+            "nameMatch": [
+                "\\.yml$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "yaml",
+            "color": "#cb171e"
         },
         {
             "nameMatch": [
