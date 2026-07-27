@@ -1,6 +1,9 @@
 > [!NOTE]
 > "Stage Size Changer" userscript migrated to [DDen4ik-12/Stage-Size-Changer repository](https://github.com/DDen4ik-12/Stage-Size-Changer)
 
+> [!NOTE]
+> "OctaTils" userscript will be migrated soon to [DDen4ik-12/OctaTils repository](https://github.com/DDen4ik-12/OctaTils)
+
 <hr>
 
 # Scratch Follow Viewports Fix
