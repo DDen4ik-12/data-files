@@ -18,7 +18,7 @@
         },
         {
             "nameMatch": [
-                "(^package(-lock)?\\.json|\\.npm(rc|ignore))$",
+                "^package(-lock)?\\.json$|^npm\\.config\\..+$|\\.npm(rc(\\..+)?|ignore)$",
                 "i"
             ],
             "contentType": "file",
@@ -27,7 +27,7 @@
         },
         {
             "nameMatch": [
-                "^webpack\\.config\\.js$",
+                "^webpack\\.config\\..+$|\\.webpackrc(\\..+)?$",
                 "i"
             ],
             "contentType": "file",
@@ -45,7 +45,7 @@
         },
         {
             "nameMatch": [
-                "(^babel\\.config\\.cjs|\\.babelrc)$",
+                "^babel\\.config\\..+$|\\.babelrc(\\..+)?$",
                 "i"
             ],
             "contentType": "file",
@@ -54,7 +54,7 @@
         },
         {
             "nameMatch": [
-                "(^eslint\\.config\\.js|\\.eslint(ignore|rc)(\\.c?js)?)$",
+                "^eslint\\.config\\..+$|\\.eslint(rc(\\..+)?|ignore)$",
                 "i"
             ],
             "contentType": "file",
@@ -63,7 +63,7 @@
         },
         {
             "nameMatch": [
-                "^vite\\.config\\.js$",
+                "^vite\\.config\\..+$|\\.viterc(\\..+)?$",
                 "i"
             ],
             "contentType": "file",
@@ -81,12 +81,21 @@
         },
         {
             "nameMatch": [
-                "\\.nvmrc$",
+                "^nvm\\.config\\..+$|\\.nvmrc(\\..+)?$",
                 "i"
             ],
             "contentType": "file",
             "icon": "nvm",
             "color": "#f4dd4b"
+        },
+        {
+            "nameMatch": [
+                "^prettier\\.config\\..+$|\\.prettier(rc(\\..+)?|ignore)$",
+                "i"
+            ],
+            "contentType": "file",
+            "icon": "prettier",
+            "color": "#f7b93e"
         },
         {
             "nameMatch": [
@@ -180,7 +189,7 @@
         },
         {
             "nameMatch": [
-                "\\.ts$",
+                "(\\.ts|^tsconfig\\.json)$",
                 "i"
             ],
             "contentType": "file",
